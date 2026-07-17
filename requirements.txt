@@ -1,5 +1,7 @@
 torch>=2.0.0
 torchvision
+tensorboard
+huggingface_hub
 streamlit
 opencv-python
 pillow

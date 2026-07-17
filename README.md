@@ -1,43 +1,48 @@
-![Status](https://img.shields.io/badge/Status-Phase%202%20Training-brightgreen "Status") ![Python](https://img.shields.io/badge/Python-3.12%2B-blue "Python") ![Backend](https://img.shields.io/badge/Backend-PyTorch-red "Backend") ![Architecture](https://img.shields.io/badge/Architecture-DenseNet-orange "Architecture") ![CI/CD Pipeline](https://img.shields.io/badge/CI%2FCD%20Pipeline-passing-brightgreen?logo=github "CI/CD Pipeline")
+![Status](https://img.shields.io/badge/Status-v3.0%20MAE%20Architecture-brightgreen "Status") ![Python](https://img.shields.io/badge/Python-3.12%2B-blue "Python") ![Backend](https://img.shields.io/badge/Backend-PyTorch%20ViT%2FMAE-red "Backend") ![UI](https://img.shields.io/badge/UI-Streamlit-orange "UI") ![CI/CD Pipeline](https://img.shields.io/badge/CI%2FCD%20Pipeline-passing-brightgreen?logo=github "CI/CD Pipeline")
 
-# Dental_014: Osteoporosis Risk Screening
+# Dental_014: Osteoporosis Risk Screening (3rd Gen)
 
-## 개요 (Overview)
-Dental_014 모듈은 환자의 파노라마 엑스레이 이미지에서 하악골(Mandible) 형태 및 ROI를 분석하여 **골감소증(Osteopenia)** 및 **골다공증(Osteoporosis)** 위험도를 스크리닝하는 딥러닝 기반 진단 보조 시스템입니다. 
-파이프라인은 두 단계(Phase)로 나뉘어 설계되었습니다:
-1. **Phase 1**: U-Net을 이용한 하악골 관심 영역(ROI) 정밀 분할 및 크롭.
-2. **Phase 2**: 크롭된 ROI 이미지를 바탕으로 DenseNet 분류기를 통해 3단계(정상, 골감소증, 골다공증) 위험도 판별.
+## 📌 개요 (Overview)
+Dental_014 모듈은 환자의 파노라마 엑스레이 이미지에서 하악골(Mandible) 형태 및 텍스처를 분석하여 **정상(C1), 골감소증(C2), 골다공증(C3)** 위험도를 스크리닝하는 AI 진단 보조 시스템입니다.
 
-## 📚 데이터셋 출처 (Datasets)
-본 모듈의 단계별 학습 및 검증을 위해 사용된 데이터셋 내역은 다음과 같습니다:
+과거 1/2세대 아키텍처(U-Net + DenseNet 조합)가 단순 픽셀 표면만 암기하며 52% 정확도(Plateau)의 한계에 부딪혔던 점을 극복하기 위해, 현재 **3세대 SOTA 아키텍처(Masked Autoencoder 기반 ViT)** 로 전면 리팩토링 되었습니다. 
 
-1. **Sharda Dataverse Dataset**
-   - **사용처**: Phase 1 (Mandible ROI U-Net Extraction)
-   - **설명**: 하악골 형태 및 경계(ROI)를 학습하기 위해 활용된 초기 파노라마 데이터셋입니다. 
-   - **비고**: 과도한 이미지 왜곡 증강(Augmentation)과 환자 식별자(`_0_`) 손실로 인한 데이터 누수 현상이 발견되어, 진단 신뢰성이 중요한 Phase 2 분류기 학습에서는 전면 배제되었습니다.
+## 🚀 차세대 아키텍처 핵심 (v3.0)
 
-2. **BRAR-anchored multimodal dataset** (현재 활성 데이터셋)
-   - **사용처**: Phase 2 (Osteopenia / Osteoporosis Classifier)
-   - **설명**: 1,104명 환자의 실제 임상 골흡수 지표가 신뢰성 있게 매핑(Anchored)된 다중 모달리티 데이터셋입니다. `정상(C1)`, `골감소증(C2)`, `골다공증(C3)` 분류를 위한 Single Source of Truth로 훈련에 도입되었습니다.
+1. **Masked Autoencoder (MAE) 백본 (`OsteoMAENet`)**
+   - 이미지 패치의 75%를 무작위로 가린 뒤(Masking), 모델이 나머지 25% 정보만으로 가려진 뼈 구조를 완벽히 복원(Reconstruction)하도록 훈련합니다.
+   - 단순 라벨 분류를 넘어, AI 스스로 **해면골(Trabecular bone)의 기하학적 미세 텍스처 패턴**을 근본적으로 이해하도록 강제합니다.
 
-## 설치 및 실행 방법
+2. **해부학적 공간 어텐션 (Spatial Attention)**
+   - 치과의사가 실제 판독 시 주의 깊게 살피는 주요 부위인 **하악골 하연(Mandible inferior border)** 및 **이공(Mental foramen)** 주변의 공간적 특징을 부각시키는 Attention 모듈이 결합되어 있습니다.
 
-### 요구사항 (Requirements)
+3. **고도화된 복합 손실 함수 (`OsteoCompositeLoss`)**
+   - **Ordinal Loss (순서형 회귀 손실)**: 질환의 진행 순서를 가르칩니다. 정상(C1)을 골다공증(C3)으로 오진할 경우 일반 오답보다 훨씬 강력한 페널티를 부여합니다.
+   - **Supervised Contrastive Loss (SupCon)**: 임상적으로 가장 감별이 어려운 C2(골감소증)와 C3(골다공증)의 특징 벡터(Embedding)를 강제로 멀리 떼어놓아 클래스 불균형과 혼동 문제를 근본적으로 타파합니다.
+
+## 📚 데이터셋 (Dataset)
+- **BRAR-anchored multimodal dataset**: 1,104명 환자의 실제 임상 골흡수 지표가 매핑된 다중 모달리티 데이터셋.
+- (참고: 기존에 활용하던 Sharda Dataset은 데이터 누수 및 과도한 왜곡 문제로 Phase 2 진단 분류에서 완전 배제하였습니다.)
+
+## 🔌 관제탑(통합 파이프라인) 연동
+이 모듈은 단독으로도 작동하지만, 메인 관제탑인 **`Dental_Panoramic_Reader`** 에 서브모듈(Submodule)로 완전하게 통합되어 있습니다. 
+훈련된 최신 가중치(`best.pt`)는 **Hugging Face (`chemahc94/Dental_014`)** 로부터 클라우드 연동을 통해 자동으로 동기화되어, 어떤 PC에서든 즉시 파노라마 뷰어 UI(`app.py`)를 통해 E2E 추론을 수행할 수 있습니다.
+
+## 🛠 설치 및 실행 방법
+
+### 1. 요구사항 (Requirements)
 ```bash
 pip install -r requirements.txt
 ```
 
-### 데이터셋 준비 (Dataset Preparation)
-1. 다운로드한 BRAR 데이터셋을 `data/BRAR_dataset` 경로에 배치합니다.
-2. 분할 스크립트를 실행하여 Train(80) / Test(20) 세트를 자동 구축합니다.
+### 2. 학습 실행 (Training)
 ```bash
-python scripts/prepare_brar_dataset.py --source data/BRAR_dataset --dest data/clean_cropped_ds
+python scripts/train.py --data_dir data --batch_size 16 --epochs 200
 ```
+> 주의: MAE와 ViT 백본은 VRAM을 다소 소모합니다. OOM 발생 시 `batch_size`를 8로 줄여주세요.
 
-### 모델 학습 (Training)
+### 3. 추론 (Inference)
+`Dental_Panoramic_Reader` 메인 리포지토리를 실행하거나, 독립 테스트 시 아래 명령어를 사용합니다:
 ```bash
-python scripts/train.py --data-dir data --batch-size 8 --epochs 50
+streamlit run app.py
 ```
-
-### 추론 (Inference / Testing)
-- `app.py` 또는 `Dental_Panoramic_Reader` 메인 통합 파이프라인(`registry.py`)을 통해 추론을 수행합니다.
