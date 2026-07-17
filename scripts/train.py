@@ -3,7 +3,6 @@ import argparse
 import torch
 import torch.nn as nn
 import torch.optim as optim
-import torch.nn.functional as F
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
 from tqdm import tqdm
@@ -13,36 +12,32 @@ import sys
 sys.path.append(os.path.join(os.path.dirname(__file__), '../src'))
 
 from dental_014.dataset import OsteoporosisDataset
-from dental_014.multitask_model import OsteoMultiTaskNet
-
-class FocalLoss(nn.Module):
-    def __init__(self, alpha=None, gamma=2, reduction='mean'):
-        super(FocalLoss, self).__init__()
-        self.gamma = gamma
-        self.reduction = reduction
-        self.alpha = alpha # Tensor of shape (C,)
-
-    def forward(self, inputs, targets):
-        ce_loss = F.cross_entropy(inputs, targets, reduction='none', weight=self.alpha)
-        pt = torch.exp(-ce_loss)
-        focal_loss = ((1 - pt) ** self.gamma) * ce_loss
-        
-        if self.reduction == 'mean':
-            return focal_loss.mean()
-        elif self.reduction == 'sum':
-            return focal_loss.sum()
-        else:
-            return focal_loss
+from dental_014.multitask_model import OsteoMAENet
+from dental_014.loss import OsteoCompositeLoss
 
 def parse_args():
-    parser = argparse.ArgumentParser(description="Train Osteoporosis Screening Model")
+    parser = argparse.ArgumentParser(description="Train OsteoMAENet Model")
     parser.add_argument("--data_dir", type=str, default="data", help="Root data directory")
     parser.add_argument("--epochs", type=int, default=20, help="Number of epochs")
     parser.add_argument("--batch_size", type=int, default=32, help="Batch size")
-    parser.add_argument("--lr", type=float, default=1e-5, help="Learning rate")
+    parser.add_argument("--lr", type=float, default=1e-4, help="Learning rate")
     parser.add_argument("--save_dir", type=str, default="weights", help="Directory to save weights")
     parser.add_argument("--resume", type=str, default="", help="Path to checkpoint to resume from")
     return parser.parse_args()
+
+def patchify(imgs, patch_size=16):
+    """
+    imgs: (N, 3, H, W)
+    x: (N, L, patch_size**2 *3)
+    """
+    p = patch_size
+    assert imgs.shape[2] == imgs.shape[3] and imgs.shape[2] % p == 0
+
+    h = w = imgs.shape[2] // p
+    x = imgs.reshape(shape=(imgs.shape[0], 3, h, p, w, p))
+    x = torch.einsum('nchpwq->nhwpqc', x)
+    x = x.reshape(shape=(imgs.shape[0], h * w, p**2 * 3))
+    return x
 
 def train(args):
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -62,20 +57,16 @@ def train(args):
     train_loader = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True, num_workers=4, pin_memory=True)
     val_loader = DataLoader(val_dataset, batch_size=args.batch_size, shuffle=False, num_workers=4, pin_memory=True)
     
-    total = 136 + 448 + 206
-    weights = [total/136, total/448, total/206]
-    class_weights = torch.FloatTensor(weights).to(device)
-    
-    model = OsteoMultiTaskNet(in_channels=3, out_channels=3, num_classes=3)
+    model = OsteoMAENet()
     if args.resume and os.path.exists(args.resume):
         model.load_state_dict(torch.load(args.resume, map_location='cpu'))
         print(f"Resumed weights from {args.resume}")
     model = model.to(device)
     
-    criterion_recon = nn.MSELoss()
-    criterion_cls = FocalLoss(alpha=class_weights, gamma=2)
-    optimizer = optim.AdamW(model.parameters(), lr=args.lr, weight_decay=1e-4)
-    scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.5, patience=2)
+    criterion = OsteoCompositeLoss(recon_weight=1.0, ordinal_weight=1.0, supcon_weight=0.5).to(device)
+    
+    optimizer = optim.AdamW(model.parameters(), lr=args.lr, weight_decay=0.05)
+    scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=args.epochs)
     
     best_acc = 0.0
     
@@ -89,17 +80,19 @@ def train(args):
             inputs, labels = inputs.to(device), labels.to(device)
             
             optimizer.zero_grad()
-            recon_logits, class_logits = model(inputs)
-            loss_recon = criterion_recon(recon_logits, inputs)
-            loss_cls = criterion_cls(class_logits, labels)
-            loss = loss_recon + loss_cls
-            outputs = class_logits
+            
+            # Forward
+            pred_pixel, class_logits, supcon_embeds = model(inputs, mask=True)
+            target_pixel = patchify(inputs)
+            
+            loss, loss_recon, loss_ordinal, loss_supcon = criterion(pred_pixel, target_pixel, class_logits, supcon_embeds, labels)
+            
             loss.backward()
             torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
             optimizer.step()
             
             train_loss += loss.item() * inputs.size(0)
-            _, preds = torch.max(outputs, 1)
+            _, preds = torch.max(class_logits, 1)
             train_correct += torch.sum(preds == labels.data)
             
             pbar.set_postfix({'loss': loss.item()})
@@ -117,14 +110,14 @@ def train(args):
         with torch.no_grad():
             for inputs, labels in tqdm(val_loader, desc=f"Epoch {epoch+1}/{args.epochs} [Val]"):
                 inputs, labels = inputs.to(device), labels.to(device)
-                recon_logits, class_logits = model(inputs)
-                loss_recon = criterion_recon(recon_logits, inputs)
-                loss_cls = criterion_cls(class_logits, labels)
-                loss = loss_recon + loss_cls
-                outputs = class_logits
+                
+                # Validation uses mask=False
+                pred_pixel, class_logits, supcon_embeds = model(inputs, mask=False)
+                
+                loss, loss_recon, loss_ordinal, loss_supcon = criterion(None, None, class_logits, supcon_embeds, labels)
                 
                 val_loss += loss.item() * inputs.size(0)
-                _, preds = torch.max(outputs, 1)
+                _, preds = torch.max(class_logits, 1)
                 val_correct += torch.sum(preds == labels.data)
                 
         val_loss = val_loss / len(val_dataset)
@@ -133,7 +126,7 @@ def train(args):
         writer.add_scalar('Loss/val', val_loss, epoch)
         writer.add_scalar('Accuracy/val', val_acc, epoch)
         
-        scheduler.step(val_loss)
+        scheduler.step()
         
         print(f"Epoch {epoch+1}/{args.epochs} - Train Loss: {train_loss:.4f} Acc: {train_acc:.4f} | Val Loss: {val_loss:.4f} Acc: {val_acc:.4f}")
         

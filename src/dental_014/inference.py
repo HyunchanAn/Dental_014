@@ -5,7 +5,7 @@ from PIL import Image
 import numpy as np
 import os
 
-from dental_014.multitask_model import OsteoMultiTaskNet
+from dental_014.multitask_model import OsteoMAENet
 from dental_014.morphology_analyzer import MorphologyAnalyzer
 
 class OsteoporosisInferencer:
@@ -16,7 +16,7 @@ class OsteoporosisInferencer:
         self.device = device if device else torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         
         # 1. Load Multi-task Model
-        self.model = OsteoMultiTaskNet(in_channels=3, out_channels=1, num_classes=3)
+        self.model = OsteoMAENet(in_channels=3, out_channels=3, num_classes=3)
         if os.path.exists(weight_path):
             self.model.load_state_dict(torch.load(weight_path, map_location=self.device, weights_only=True))
         else:
@@ -48,12 +48,16 @@ class OsteoporosisInferencer:
         img_t = self.transform(image).unsqueeze(0).to(self.device)
         
         with torch.no_grad():
-            recon_logits, class_logits = self.model(img_t)
+            pred_pixel, class_logits, _ = self.model(img_t, mask=False)
             
             # Reconstructed Image (for visualization instead of mask)
-            recon_img = torch.sigmoid(recon_logits).squeeze().cpu().numpy()
-            recon_img = np.transpose(recon_img, (1, 2, 0)) # CHW to HWC
-            mask = (recon_img * 255).astype(np.uint8) # Return as pseudo-mask/visualization
+            if pred_pixel is not None:
+                recon_img = torch.sigmoid(pred_pixel).squeeze().cpu().numpy()
+                if recon_img.ndim == 3:
+                    recon_img = np.transpose(recon_img, (1, 2, 0)) # CHW to HWC
+                mask = (recon_img * 255).astype(np.uint8) # Return as pseudo-mask/visualization
+            else:
+                mask = np.zeros((img_t.shape[2], img_t.shape[3], 3), dtype=np.uint8)
             
             # Classification
             probs = F.softmax(class_logits, dim=1).squeeze().cpu().numpy()
