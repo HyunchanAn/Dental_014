@@ -1,0 +1,8 @@
+2026-07-17
+- Sharda 오염 데이터셋 문제(환자 식별자 손실 등) 확인 및 사용 전면 중단 결정
+- 대안 B로 제시된 BRAR-anchored multimodal dataset 다운로드 및 통합 완료
+- 데이터셋 Train/Test 분할을 위한 자동화 스크립트(prepare_brar_dataset.py) 작성 및 실행 (8:2 비율, 총 988장)
+- 확장자 호환성 확장을 위해 dataset.py 수정 (jpg 파일 지원 추가)
+- 불필요해진 INTERIM_REPORT.md 문서를 삭제하고, Main Workstation 학습을 위한 지시서(TRAINING_INSTRUCTIONS.md) 작성
+- 모듈 014에 대한 단독 리포지토리 구성 및 GitHub 퍼블릭 저장소(HyunchanAn/Dental_014) 등록
+- Dental_Panoramic_Reader 메인 관제탑 파이프라인에 서브모듈로 연동 준비 및 연동 작업 수행

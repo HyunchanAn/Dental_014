@@ -42,10 +42,10 @@ def train(args):
     train_loader = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True, num_workers=4, pin_memory=True)
     val_loader = DataLoader(val_dataset, batch_size=args.batch_size, shuffle=False, num_workers=4, pin_memory=True)
     
-    # Class weights for imbalanced dataset (example values, could be calculated dynamically)
-    # C1: ~10606, C2: ~7381, C3: ~2310
-    total = 10606 + 7381 + 2310
-    weights = [total/10606, total/7381, total/2310]
+    # Class weights for imbalanced dataset
+    # C1: 136, C2: 448, C3: 206 (BRAR dataset train split)
+    total = 136 + 448 + 206
+    weights = [total/136, total/448, total/206]
     class_weights = torch.FloatTensor(weights).to(device)
     
     model = get_model(num_classes=3, pretrained=True).to(device)
