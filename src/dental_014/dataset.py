@@ -12,7 +12,7 @@ class OsteoporosisDataset(Dataset):
         C2: Osteopenia
         C3: Osteoporosis
     """
-    def __init__(self, root_dir, split='train', img_size=(224, 224)):
+    def __init__(self, root_dir, split='train', img_size=(256, 512)):
         """
         Args:
             root_dir (str): Root directory of the dataset (e.g. data/train_ds/train_ds)
@@ -32,13 +32,8 @@ class OsteoporosisDataset(Dataset):
         # Map C1, C2, C3 to 0, 1, 2
         self.class_map = {'C1': 0, 'C2': 1, 'C3': 2}
         
-        # Determine transformations based on split
-        # To avoid aspect ratio distortion (200x100 to 224x224), we pad it to square (200x200) first
-        pad_to_square = transforms.Pad((0, 50, 0, 50), fill=0) # left, top, right, bottom
-        
         if split == 'train':
             self.transform = transforms.Compose([
-                pad_to_square,
                 transforms.Resize(img_size),
                 transforms.RandomHorizontalFlip(),
                 transforms.RandomRotation(15),
@@ -50,7 +45,6 @@ class OsteoporosisDataset(Dataset):
             ])
         else:
             self.transform = transforms.Compose([
-                pad_to_square,
                 transforms.Resize(img_size),
                 transforms.ToTensor(),
                 transforms.Normalize(mean=[0.485, 0.456, 0.406], 

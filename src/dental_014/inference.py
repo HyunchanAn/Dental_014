@@ -1,27 +1,36 @@
 import torch
 import torch.nn.functional as F
-from torchvision import transforms
+import torchvision.transforms as T
 from PIL import Image
+import numpy as np
+import os
 
-from dental_014.model import get_model
+from dental_014.multitask_model import OsteoMultiTaskNet
+from dental_014.morphology_analyzer import MorphologyAnalyzer
 
 class OsteoporosisInferencer:
     """
-    Inference pipeline for Osteoporosis screening.
+    Inference pipeline for Osteoporosis screening using the new End-to-End Multi-task Architecture.
     """
     def __init__(self, weight_path, device=None):
         self.device = device if device else torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         
-        self.model = get_model(num_classes=3, pretrained=False)
-        self.model.load_state_dict(torch.load(weight_path, map_location=self.device, weights_only=True))
+        # 1. Load Multi-task Model
+        self.model = OsteoMultiTaskNet(in_channels=3, out_channels=1, num_classes=3)
+        if os.path.exists(weight_path):
+            self.model.load_state_dict(torch.load(weight_path, map_location=self.device, weights_only=True))
+        else:
+            print(f"Warning: Multi-task weights not found at {weight_path}")
+            
         self.model.to(self.device)
         self.model.eval()
         
-        self.transform = transforms.Compose([
-            transforms.Resize((224, 224)),
-            transforms.ToTensor(),
-            transforms.Normalize(mean=[0.485, 0.456, 0.406], 
-                                 std=[0.229, 0.224, 0.225])
+        # 2. Morphology Analyzer (For explainability only)
+        self.analyzer = MorphologyAnalyzer(pixels_per_mm=10.0)
+        
+        self.transform = T.Compose([
+            T.Resize((256, 512)),
+            T.ToTensor()
         ])
         
         self.classes = ['Normal', 'Osteopenia (경도)', 'Osteoporosis (중증)']
@@ -29,7 +38,7 @@ class OsteoporosisInferencer:
     def predict(self, image_path_or_pil):
         """
         Predicts the osteoporosis risk for a given image.
-        Returns the class name and the probability distribution.
+        Returns the class name, the probability distribution, the predicted mask, and morphology features.
         """
         if isinstance(image_path_or_pil, str):
             image = Image.open(image_path_or_pil).convert('RGB')
@@ -39,12 +48,20 @@ class OsteoporosisInferencer:
         img_t = self.transform(image).unsqueeze(0).to(self.device)
         
         with torch.no_grad():
-            outputs = self.model(img_t)
-            probs = F.softmax(outputs, dim=1).squeeze().cpu().numpy()
+            recon_logits, class_logits = self.model(img_t)
             
-        pred_idx = probs.argmax()
-        pred_class = self.classes[pred_idx]
+            # Reconstructed Image (for visualization instead of mask)
+            recon_img = torch.sigmoid(recon_logits).squeeze().cpu().numpy()
+            recon_img = np.transpose(recon_img, (1, 2, 0)) # CHW to HWC
+            mask = (recon_img * 255).astype(np.uint8) # Return as pseudo-mask/visualization
+            
+            # Classification
+            probs = F.softmax(class_logits, dim=1).squeeze().cpu().numpy()
+            pred_idx = np.argmax(probs)
+            
+        geom_feats = {"message": "Morphology analysis disabled in Autoencoder (Mask-Free) mode."}
         
+        pred_class = self.classes[pred_idx]
         res_dict = {self.classes[i]: float(probs[i]) for i in range(3)}
         
-        return pred_class, res_dict
+        return pred_class, res_dict, mask, geom_feats

@@ -7,7 +7,7 @@ from sklearn.metrics import classification_report, confusion_matrix
 sys.path.append(os.path.join(os.path.dirname(__file__), '../src'))
 from dental_014.dataset import OsteoporosisDataset
 from torch.utils.data import DataLoader
-from dental_014.model import get_model
+from dental_014.multitask_model import OsteoMultiTaskNet
 
 def evaluate():
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -17,7 +17,7 @@ def evaluate():
     val_dataset = OsteoporosisDataset(test_dir, split='test')
     val_loader = DataLoader(val_dataset, batch_size=32, shuffle=False, num_workers=4)
     
-    model = get_model(num_classes=3, pretrained=False)
+    model = OsteoMultiTaskNet(in_channels=3, out_channels=3, num_classes=3)
     weight_path = os.path.join("weights", "best.pt")
     model.load_state_dict(torch.load(weight_path, map_location=device))
     model.to(device)
@@ -30,7 +30,7 @@ def evaluate():
     with torch.no_grad():
         for inputs, labels in val_loader:
             inputs = inputs.to(device)
-            outputs = model(inputs)
+            recon_logits, outputs = model(inputs)
             _, preds = torch.max(outputs, 1)
             
             all_preds.extend(preds.cpu().numpy())
