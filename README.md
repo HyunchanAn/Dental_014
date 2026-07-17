@@ -46,3 +46,19 @@ python scripts/train.py --data_dir data --batch_size 16 --epochs 200
 ```bash
 streamlit run app.py
 ```
+
+## 📜 아키텍처 결정 기록 (ADR: Architecture Decision Record)
+
+**배경**: 
+1/2세대 모델은 `U-Net`으로 하악골을 분할한 뒤 `DenseNet`을 이용해 질환을 분류했습니다. 그러나 실제 벤치마크 결과 **정확도 52% (Macro F1 0.52)**에서 강력한 정체(Plateau)를 겪었습니다. 특히 정상(C1)과 골감소증(C2) 클래스의 불균형, 그리고 뼈 표면 픽셀만 외워버리는 과적합(Overfitting) 문제가 심각했습니다.
+
+**해결 방안 (Why MAE + ViT?)**:
+단순히 이미지 전체를 보고 클래스를 찍어맞추는 방식(분류)에서 벗어나, 해면골의 그물망(Trabecular) 구조 자체를 AI가 스스로 학습해야만 돌파구가 열린다고 판단했습니다. 
+따라서 입력 이미지의 75%를 무작위로 제거(Masking)한 후 남은 25%만으로 뼈를 완벽히 그려내는 **Masked Autoencoder (Multi-task Autoencoder)** 패러다임을 전격 도입하였습니다. 이를 통해 모델은 데이터 부족 현상을 극복하고 뼈의 기하학적 형태학(Morphology)을 본질적으로 이해하게 됩니다.
+
+## 🎯 향후 로드맵 (Future Roadmap)
+
+- [ ] **형태학적 융합 (Morphological Fusion)**: `morphology_analyzer.py`에서 추출한 전통적인 치과 지표(Cortical thickness, 하악각 등)를 ViT 임베딩에 직접 융합(Fusion)하여 진단 신뢰도 향상
+- [ ] **설명 가능한 AI (XAI)**: Grad-CAM 및 Attention Map 시각화를 추가하여 치과의사에게 판단의 근거(형태학적 특징 부위)를 직관적으로 제시
+- [ ] **데이터 파이프라인 확장**: 클래스 불균형 해소 및 일반화 성능 확보를 위한 추가적인 고품질 파노라마 임상 데이터셋(비공개) 정제 및 투입
+- [ ] **최종 목표 성능**: **Macro F1 Score 0.70 이상** 달성 및 상용화 수준 벤치마크 확립
