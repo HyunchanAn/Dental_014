@@ -24,3 +24,9 @@
 - 최종 벤치마크 평가 결과 정확도 52% 로 성능 한계점(Plateau) 도달 확인
 - 파이프라인 개발팀 인수 조건 충족을 위해 BENCHMARK_REPORT.md에 추가 학습은 필요 없음 명시
 - 훈련 파이프라인 완전 종료 및 스냅샷 보존 완료
+- 리뷰 피드백 수렴 및 3세대 아키텍처(Masked Autoencoder 기반 ViT) 전면 도입 리팩토링 진행
+- 모델이 테스트 이미지를 모두 C2(골감소증)로 예측하는 심각한 모드 붕괴(Mode Collapse) 현상 발견 (Round 1 & 2 결과)
+- `loss.py`를 전면 개편하여 `OrdinalFocalLoss` 및 역빈도 클래스 가중치(Class Weights: C1=3.29, C2=1.0, C3=2.15) 패치 적용
+- 패치 적용 후 Round 3 신규 훈련(200 Epoch) 실시
+- Round 3 최종 벤치마크 평가 결과: 정확도 36%, 골다공증(C3) 민감도 73.1%, 모드 붕괴(꼼수) 현상 완벽히 치료 완료
+- 최신 가중치(`best.pt`) Hugging Face(`chemahc94/Dental_014`) 업로드 및 원격 동기화 완료
