@@ -85,9 +85,11 @@ streamlit run app.py
 | **Osteoporosis (C3)** | 3 | 11 | **38** |
 
 
-## 🎯 향후 로드맵 (Future Roadmap)
+## 🎯 향후 로드맵 및 To-Do List (최근 아키텍처 리뷰 피드백 반영)
 
-- [ ] **형태학적 융합 (Morphological Fusion)**: `morphology_analyzer.py`에서 추출한 전통적인 치과 지표(Cortical thickness, 하악각 등)를 ViT 임베딩에 직접 융합(Fusion)하여 진단 신뢰도 향상
-- [ ] **설명 가능한 AI (XAI)**: Grad-CAM 및 Attention Map 시각화를 추가하여 치과의사에게 판단의 근거(형태학적 특징 부위)를 직관적으로 제시
-- [ ] **데이터 파이프라인 확장**: 클래스 불균형 해소 및 일반화 성능 확보를 위한 추가적인 고품질 파노라마 임상 데이터셋(비공개) 정제 및 투입
+최근 전체 통합 아키텍처 리뷰에서 지적받은 **Dental_014의 취약점(낮은 특이도 및 시각화 부재)**을 최우선적으로 해결하기 위한 과제 목록입니다.
+
+- [ ] **특이도(Specificity) 방어 및 개선**: 현재 정상(C1)을 질환으로 과대 예측하는 낮은 특이도(17.6%) 문제를 타파하기 위해, 클래스 불균형 해소용 데이터 증강 및 비공개 고품질 데이터 더 많이 투입.
+- [ ] **형태학적 융합 (Morphological Fusion)**: `morphology_analyzer.py`를 활용해 하악 하연 두께(Cortical thickness) 등 전통적 임상 지표를 ViT 임베딩과 직접 융합하여 Mode Collapse 완전 해결.
+- [ ] **설명 가능한 AI (XAI) 적극 도입**: 타 모듈 대비 판독 근거의 시각화 일관성이 떨어지므로, Grad-CAM 및 Attention Map 시각화를 모듈 내에 강력하게 도입하여 치과의사에게 형태학적 판단 근거 제시.
 - [ ] **최종 목표 성능**: **Macro F1 Score 0.70 이상** 달성 및 상용화 수준 벤치마크 확립
