@@ -2,17 +2,16 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-class OrdinalLoss(nn.Module):
+class OrdinalFocalLoss(nn.Module):
     """
-    서수 회귀 손실 (Ordinal Regression Loss)
-    C1(정상) -> C2(골감소증) -> C3(골다공증)의 순차적 거리를 반영하여,
-    C1을 C3로 예측하거나 C3를 C1으로 예측할 때 일반 CrossEntropy보다 훨씬 큰 페널티를 부여합니다.
+    Focal Loss가 결합된 서수 회귀 손실 (Ordinal Focal Loss)
+    모드 붕괴(Mode Collapse) 방지를 위해 역빈도(Class Weights)와 Focal 계수를 함께 적용합니다.
     """
-    def __init__(self, num_classes=3):
-        super(OrdinalLoss, self).__init__()
+    def __init__(self, num_classes=3, gamma=2.0, alpha=None):
+        super(OrdinalFocalLoss, self).__init__()
         self.num_classes = num_classes
-        # 거리 가중치 행렬 생성 (클래스 인덱스 간의 절대 거리)
-        # 예: |0 - 2| = 2 (C1과 C3의 거리)
+        self.gamma = gamma
+        self.alpha = alpha  # e.g. torch.tensor([3.29, 1.0, 2.15])
         self.register_buffer('distance_matrix', self._create_distance_matrix(num_classes))
 
     def _create_distance_matrix(self, num_classes):
@@ -24,16 +23,27 @@ class OrdinalLoss(nn.Module):
 
     def forward(self, logits, targets):
         probs = F.softmax(logits, dim=1)
-        # 타겟을 one-hot으로 변환 후 거리 행렬과 행렬 곱하여 클래스별 페널티 계산
         target_one_hot = F.one_hot(targets, num_classes=self.num_classes).float()
-        penalties = torch.matmul(target_one_hot, self.distance_matrix)
         
-        # 기본 CrossEntropy 요소 계산 (log probs)
+        # 1. Focal Term 계산: (1 - p_t)^gamma
+        p_t = (probs * target_one_hot).sum(dim=1)
+        focal_term = (1.0 - p_t) ** self.gamma
+        
+        # 2. Alpha (Class Weights) 적용
+        if self.alpha is not None:
+            self.alpha = self.alpha.to(targets.device)
+            alpha_t = self.alpha[targets]
+        else:
+            alpha_t = 1.0
+            
+        # 3. Ordinal Penalties 적용
+        penalties = torch.matmul(target_one_hot, self.distance_matrix)
         log_probs = torch.log(probs + 1e-7)
         
-        # 페널티가 반영된 CrossEntropy (거리가 멀수록 CE 손실을 증폭)
-        # target_one_hot 대신 페널티를 고려한 가중 손실 적용
-        loss = -torch.sum((target_one_hot + 0.5 * penalties) * log_probs, dim=1)
+        # 4. 최종 손실: 가중치(alpha_t) * 초점(focal_term) * CE_Ordinal
+        ce_ordinal = -torch.sum((target_one_hot + 0.5 * penalties) * log_probs, dim=1)
+        loss = alpha_t * focal_term * ce_ordinal
+        
         return loss.mean()
 
 class SupConLoss(nn.Module):
@@ -102,7 +112,9 @@ class OsteoCompositeLoss(nn.Module):
         self.supcon_weight = supcon_weight
         
         self.mse_loss = nn.MSELoss()
-        self.ordinal_loss = OrdinalLoss(num_classes=3)
+        # 데이터 불균형 역빈도(Inverse Frequency) 가중치 (C1: 34, C2: 112, C3: 52 -> Normalize to C2=1.0)
+        class_weights = torch.tensor([3.29, 1.0, 2.15])
+        self.ordinal_loss = OrdinalFocalLoss(num_classes=3, gamma=2.0, alpha=class_weights)
         self.supcon_loss = SupConLoss()
 
     def forward(self, pred_pixel, target_pixel, class_logits, supcon_embeds, targets):
