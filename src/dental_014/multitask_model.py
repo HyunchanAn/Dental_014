@@ -20,10 +20,13 @@ class SpatialAttention(nn.Module):
         return x * self.sigmoid(attn_map)
 
 class PatchEmbedding(nn.Module):
-    def __init__(self, in_channels=3, patch_size=16, emb_size=768, img_size=224):
+    def __init__(self, in_channels=3, patch_size=16, emb_size=768, img_size=(256, 512)):
         super().__init__()
         self.patch_size = patch_size
-        self.num_patches = (img_size // patch_size) ** 2
+        if isinstance(img_size, int):
+            self.num_patches = (img_size // patch_size) ** 2
+        else:
+            self.num_patches = (img_size[0] // patch_size) * (img_size[1] // patch_size)
         
         # Spatial Attention pre-processing
         self.spatial_attention = SpatialAttention()
@@ -44,12 +47,15 @@ class OsteoMAENet(nn.Module):
     Head 1: Masked Patch Reconstruction (해면골/피질골의 본질적 기하학 학습)
     Head 2: Osteoporosis Classification (C1, C2, C3) & SupCon Embedding
     """
-    def __init__(self, in_channels=3, img_size=224, patch_size=16, emb_size=768, 
+    def __init__(self, in_channels=3, img_size=(256, 512), patch_size=16, emb_size=768, 
                  depth=12, num_heads=12, num_classes=3, mask_ratio=0.75):
         super(OsteoMAENet, self).__init__()
         self.mask_ratio = mask_ratio
         self.patch_size = patch_size
-        self.num_patches = (img_size // patch_size) ** 2
+        if isinstance(img_size, int):
+            self.num_patches = (img_size // patch_size) ** 2
+        else:
+            self.num_patches = (img_size[0] // patch_size) * (img_size[1] // patch_size)
         
         # 1. Patch Embedding + Spatial Attention
         self.patch_embed = PatchEmbedding(in_channels, patch_size, emb_size, img_size)

@@ -31,9 +31,10 @@ def patchify(imgs, patch_size=16):
     x: (N, L, patch_size**2 *3)
     """
     p = patch_size
-    assert imgs.shape[2] == imgs.shape[3] and imgs.shape[2] % p == 0
+    assert imgs.shape[2] % p == 0 and imgs.shape[3] % p == 0
 
-    h = w = imgs.shape[2] // p
+    h = imgs.shape[2] // p
+    w = imgs.shape[3] // p
     x = imgs.reshape(shape=(imgs.shape[0], 3, h, p, w, p))
     x = torch.einsum('nchpwq->nhwpqc', x)
     x = x.reshape(shape=(imgs.shape[0], h * w, p**2 * 3))
