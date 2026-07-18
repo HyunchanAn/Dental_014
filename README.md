@@ -64,6 +64,27 @@ streamlit run app.py
 * **골다공증(C3) 민감도 (Sensitivity)**: **73.1%** (실제 C3 환자 52명 중 38명 탐지)
 * **임상적 의의**: 질병을 잡아내는 민감도는 우수해졌으나, 정상 환자도 질환으로 판단하는 특이도(Specificity, 17.6%)가 낮아 극단적인 스크리닝 도구로 동작 중입니다. 형태학적 융합 및 데이터 증강을 통한 밸런스 튜닝이 요구됩니다.
 
+### Classification Report (분류 성능 상세)
+
+| Class | Precision (정밀도) | Recall (재현율) | F1-Score | Support (샘플 수) |
+| :--- | :---: | :---: | :---: | :---: |
+| **Normal(C1)** | 0.30 | 0.18 | 0.22 | 34 |
+| **Osteopenia(C2)** | 0.68 | 0.24 | 0.36 | 112 |
+| **Osteoporosis(C3)** | 0.28 | 0.73 | **0.40** | 52 |
+| | | | | |
+| **Accuracy (정확도)** | | | **0.36 (36%)** | 198 |
+| **Macro Avg** | 0.42 | 0.38 | 0.33 | 198 |
+| **Weighted Avg** | 0.51 | 0.36 | 0.34 | 198 |
+
+### Confusion Matrix (혼동 행렬)
+
+| 실제 \ 예측 | Normal (C1) | Osteopenia (C2) | Osteoporosis (C3) |
+| :--- | :---: | :---: | :---: |
+| **Normal (C1)** | **6** | 2 | 26 |
+| **Osteopenia (C2)** | 11 | **27** | 74 |
+| **Osteoporosis (C3)** | 3 | 11 | **38** |
+
+
 ## 🎯 향후 로드맵 (Future Roadmap)
 
 - [ ] **형태학적 융합 (Morphological Fusion)**: `morphology_analyzer.py`에서 추출한 전통적인 치과 지표(Cortical thickness, 하악각 등)를 ViT 임베딩에 직접 융합(Fusion)하여 진단 신뢰도 향상
