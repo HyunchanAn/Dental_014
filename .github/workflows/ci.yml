@@ -41,6 +41,6 @@ jobs:
       run: |
         ruff check . || echo "Ruff failed, but continuing"
 
-    - name: Run Dental_000/tests_014/ with PYTHONPATH=${{ github.workspace }} pytest
+    - name: Run Dental_000/tests/tests_014/ with PYTHONPATH=${{ github.workspace }} pytest
       run: |
-        PYTHONPATH=${{ github.workspace }} python -m pytest Dental_000/tests_014/
+        PYTHONPATH=${{ github.workspace }} python -m pytest Dental_000/tests/tests_014/
