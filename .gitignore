@@ -8,3 +8,5 @@ __pycache__/
 
 *.onnx
 __pycache__/
+*.pt
+*.pth
