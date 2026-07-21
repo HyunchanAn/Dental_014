@@ -93,3 +93,7 @@ streamlit run app.py
 - [ ] **형태학적 융합 (Morphological Fusion)**: `morphology_analyzer.py`를 활용해 하악 하연 두께(Cortical thickness) 등 전통적 임상 지표를 ViT 임베딩과 직접 융합하여 Mode Collapse 완전 해결.
 - [ ] **설명 가능한 AI (XAI) 적극 도입**: 타 모듈 대비 판독 근거의 시각화 일관성이 떨어지므로, Grad-CAM 및 Attention Map 시각화를 모듈 내에 강력하게 도입하여 치과의사에게 형태학적 판단 근거 제시.
 - [ ] **최종 목표 성능**: **Macro F1 Score 0.70 이상** 달성 및 상용화 수준 벤치마크 확립
+
+
+## 가중치 백업 안내
+오래된 이전 가중치 파일(Legacy Backups)은 통일성을 위해 Emergency_Weights_Vault/Dental_014/Backup_Checkpoints 폴더에 별도로 안전하게 보존되어 있습니다.
