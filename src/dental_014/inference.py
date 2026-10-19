@@ -26,13 +26,17 @@ class OsteoporosisInferencer:
         )
 
         # 1. Load Multi-task Model
-        self.model = OsteoMAENet(in_channels=3, num_classes=3)
-        if os.path.exists(weight_path):
-            self.model.load_state_dict(
-                torch.load(weight_path, map_location=self.device, weights_only=True)
+        if str(weight_path).lower().endswith(".onnx"):
+            raise ValueError(
+                f"OsteoporosisInferencer requires a PyTorch state_dict (.pt/.pth), got ONNX file: {weight_path}"
             )
-        else:
-            print(f"Warning: Multi-task weights not found at {weight_path}")
+        if not weight_path or not os.path.exists(weight_path):
+            raise FileNotFoundError(f"Multi-task weights not found at {weight_path}")
+
+        self.model = OsteoMAENet(in_channels=3, num_classes=3)
+        self.model.load_state_dict(
+            torch.load(weight_path, map_location=self.device, weights_only=True)
+        )
 
         self.model.to(self.device)
         self.model.eval()
