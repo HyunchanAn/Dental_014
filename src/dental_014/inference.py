@@ -5,8 +5,12 @@ from PIL import Image
 import numpy as np
 import os
 
-from dental_014.multitask_model import OsteoMAENet
-from dental_014.morphology_analyzer import MorphologyAnalyzer
+try:
+    from .multitask_model import OsteoMAENet
+    from .morphology_analyzer import MorphologyAnalyzer
+except ImportError:
+    from dental_014.multitask_model import OsteoMAENet
+    from dental_014.morphology_analyzer import MorphologyAnalyzer
 
 
 class OsteoporosisInferencer:
@@ -22,7 +26,7 @@ class OsteoporosisInferencer:
         )
 
         # 1. Load Multi-task Model
-        self.model = OsteoMAENet(in_channels=3, out_channels=3, num_classes=3)
+        self.model = OsteoMAENet(in_channels=3, num_classes=3)
         if os.path.exists(weight_path):
             self.model.load_state_dict(
                 torch.load(weight_path, map_location=self.device, weights_only=True)
