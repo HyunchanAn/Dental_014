@@ -36,3 +36,7 @@
 - `README.md`에 BRAR-anchored 1,104명 데이터셋의 비공개/제한 접근 출처, 비재배포 원칙, 가중치의 비영리 학술 연구 전용 이용 조건, Sharda 데이터셋 배제 사유, Holdout Test 지표(`Acc 54.79%, Macro-F1 0.4832`)를 명시.
 - 소스 코드용 `LICENSE`(MIT License) 파일 추가.
 
+2026-10-21
+- `src/dental_014/inference.py`의 `OsteoporosisInferencer.predict()`에서 하악 하연 피질골 마스크 자동 추출(`_extract_cortical_mask`), `MorphologyAnalyzer.analyze_mask()` 실연동, 피질골 두께·공극률·충실도 기반 확률 보정(`_fuse_morphology_and_logits`), `SpatialAttention` + 입력 그래디언트 Saliency 결합 XAI 히트맵 오버레이(`_compute_xai_heatmap`) 구현 완료
+- `app.py`에서 `inferencer.predict(image)` 4-튜플 언패킹 불일치 버그를 수정하고 XAI 히트맵 및 형태학 지표 출력을 추가함
+- `tests/test_inference_and_xai.py` 단위 테스트 추가 및 `README.md` 형태학적 융합·XAI 체크리스트(`[x]`) 현행화 완료

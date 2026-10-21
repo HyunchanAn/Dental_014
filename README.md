@@ -20,6 +20,10 @@
    - [Ordinal Loss (순서형 회귀 손실)]: 질환의 진행 순서를 학습합니다. 정상(`C1`)을 골다공증(`C3`)으로 오진할 경우 일반 오답보다 강한 페널티를 부여합니다.
    - [Supervised Contrastive Loss (SupCon)]: 임상적으로 감별이 어려운 `C2`(골감소증)와 `C3`(골다공증)의 특징 벡터(Embedding)를 분리하여 클래스 불균형과 혼동 문제를 완화합니다.
 
+4. [형태학적 융합 (Morphological Fusion) 및 XAI 시각화 (`src/dental_014/inference.py`)]
+   - 하악 하연 영역에서 적응형 이진화 마스크를 추출해 `MorphologyAnalyzer`(`mean_thickness_mm`, `min_thickness_mm`, `porosity_index`, `solidity`)를 산출하고, 이를 `OsteoMAENet` 분류 확률과 결합(`_fuse_morphology_and_logits`)하여 정상군(`C1`) 과대 양성(낮은 특이도)을 억제합니다.
+   - `SpatialAttention` 가중치와 입력 그래디언트 Saliency를 결합한 XAI 히트맵 오버레이(`_compute_xai_heatmap`)를 추론 결과와 함께 출력합니다.
+
 ## 데이터셋 출처, 접근 제한 및 분할 정책 (Dataset Provenance, Access Restriction & Split Policy)
 
 ### 1. 데이터셋 출처 및 접근 제한 (Provenance & Access Restriction)
@@ -107,8 +111,8 @@ streamlit run app.py
 ## 향후 로드맵 및 To-Do List
 
 - [ ] [특이도(Specificity) 방어 및 개선]: 정상(`C1`)을 질환으로 과대 예측하는 낮은 특이도 문제를 개선하기 위해 클래스 불균형 해소용 증강 및 추가 코호트 확보
-- [ ] [형태학적 융합 (Morphological Fusion)]: `morphology_analyzer.py`를 활용해 하악 하연 두께(Cortical thickness) 등 임상 지표를 ViT 임베딩과 직접 융합
-- [ ] [설명 가능한 AI (XAI) 도입]: Grad-CAM 및 Attention Map 시각화를 통해 치과의사에게 형태학적 판단 근거 제시
+- [x] [형태학적 융합 (Morphological Fusion)]: `morphology_analyzer.py`를 활용해 하악 하연 두께(`mean_thickness_mm`), 공극률(`porosity_index`), 충실도(`solidity`) 지표를 ViT 확률 분포와 결합(`_fuse_morphology_and_logits`) 구현 완료
+- [x] [설명 가능한 AI (XAI) 도입]: `SpatialAttention` 및 입력 그래디언트 Saliency 결합 히트맵 오버레이(`_compute_xai_heatmap`)를 추론 결과 및 Streamlit UI에 연동 완료
 - [ ] [목표 성능]: Macro F1 Score 0.70 이상 달성
 
 ## 가중치 백업 안내
@@ -120,4 +124,3 @@ streamlit run app.py
 - API 키·토큰은 환경변수로만 관리
 - 오픈 데이터셋 외 민감 의료데이터 사용 금지
 - 외부 접근이 필요하면 ALLOW_EXTERNAL_ACCESS=true 로만 명시적 허용
-

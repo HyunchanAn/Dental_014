@@ -1,9 +1,8 @@
 import os
+import sys
 import streamlit as st
 from PIL import Image
 import pandas as pd
-
-import sys
 
 sys.path.append("src")
 
@@ -14,12 +13,12 @@ except ImportError:
 
 st.set_page_config(page_title="Dental_014: Osteoporosis Screening", layout="wide")
 
-st.title("🦷 Dental_014: Osteoporosis Risk Screening")
+st.title("Dental_014: Osteoporosis Risk Screening")
 st.markdown(
-    "하악 피질골/골소주(Mandibular Cortical Bone) 패치 이미지를 분석하여 골다공증 위험도를 예측합니다."
+    "하악 피질골/골소주(Mandibular Cortical Bone) 패치 이미지를 분석하여 골다공증 위험도, 형태학적 지표(MCW) 및 XAI Attention Map을 출력합니다."
 )
 
-weight_path = "weights/best.pt"
+weight_path = "models/best.pt" if os.path.exists("models/best.pt") else "weights/best.pt"
 
 
 @st.cache_resource
@@ -41,7 +40,7 @@ else:
             f"모델 가중치 파일(`{weight_path}`)을 찾을 수 없습니다. 학습을 먼저 진행해주세요."
         )
     else:
-        st.info("✅ 모델 로딩 완료.")
+        st.info("모델 로딩 완료.")
 
         uploaded_file = st.file_uploader(
             "하악골 피질골 크롭 이미지(Patch) 업로드", type=["png", "jpg", "jpeg"]
@@ -57,11 +56,10 @@ else:
 
             with col2:
                 with st.spinner("분석 중..."):
-                    pred_class, probs = inferencer.predict(image)
+                    pred_class, probs, xai_map, geom_feats = inferencer.predict(image)
 
-                st.subheader(f"예측 결과: **{pred_class}**")
+                st.subheader(f"예측 결과: [{pred_class}]")
 
-                # Bar chart
                 df = pd.DataFrame(
                     {
                         "Risk Level": list(probs.keys()),
@@ -69,3 +67,10 @@ else:
                     }
                 )
                 st.bar_chart(df.set_index("Risk Level"))
+
+                st.image(
+                    xai_map,
+                    caption="XAI Spatial Attention & Gradient Saliency Overlay",
+                    use_column_width=True,
+                )
+                st.json(geom_feats)
