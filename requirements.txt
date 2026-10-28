@@ -3,8 +3,10 @@ torchvision
 tensorboard
 huggingface_hub
 streamlit
-opencv-python
+opencv-python-headless
 pillow
 numpy
 pandas
+scikit-image
 tqdm
+git+https://github.com/HyunchanAn/Dental_Core.git@main

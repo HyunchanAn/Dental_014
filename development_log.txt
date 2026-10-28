@@ -43,3 +43,6 @@
 
 2026-10-25
 - 전 시리즈 개발일지(`development_log.txt`) 단일 표준 양식 통일 완료.
+
+2026-10-28
+- 이슈 #4 해결: `requirements.txt`에 누락되어 있던 `scikit-image` 및 `Dental_Core` 의존성을 추가하고 `.github/workflows/ci.yml`에서 로컬 테스트(`tests/`)와 중앙 테스트(`Dental_000/tests/tests_014`)를 함께 구동하도록 정비하여 원격 GitHub Actions CI 복구 완료.
