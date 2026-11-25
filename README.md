@@ -1,4 +1,4 @@
-![Status](https://img.shields.io/badge/Status-v3.0%20MAE%20Architecture-brightgreen "Status") ![Python](https://img.shields.io/badge/Python-3.12%2B-blue "Python") ![Backend](https://img.shields.io/badge/Backend-PyTorch%20ViT%2FMAE-red "Backend") ![UI](https://img.shields.io/badge/UI-Streamlit-orange "UI") ![License](https://img.shields.io/badge/License-MIT-green "License") ![CI/CD Pipeline](https://img.shields.io/badge/CI%2FCD%20Pipeline-passing-brightgreen?logo=github "CI/CD Pipeline")
+﻿![Status](https://img.shields.io/badge/Status-v3.0%20MAE%20Architecture-brightgreen "Status") ![Python](https://img.shields.io/badge/Python-3.10%2B-blue "Python") ![Backend](https://img.shields.io/badge/Backend-PyTorch%20ViT%2FMAE-red "Backend") ![UI](https://img.shields.io/badge/UI-Streamlit-orange "UI") ![License](https://img.shields.io/badge/License-MIT-green "License") ![CI/CD Pipeline](https://img.shields.io/badge/CI%2FCD%20Pipeline-passing-brightgreen?logo=github "CI/CD Pipeline")
 
 # Dental_014: Osteoporosis Risk Screening (하악 피질골 기반 골다공증 위험도 스크리닝)
 

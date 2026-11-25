@@ -141,13 +141,13 @@ if __name__ == "__main__":
     parser.add_argument(
         "--source",
         type=str,
-        default=r"C:\Users\chema\Github\Dental_014\data\BRAR_dataset",
+        default="data/BRAR_dataset",
         help="Path to raw BRAR dataset",
     )
     parser.add_argument(
         "--dest",
         type=str,
-        default=r"C:\Users\chema\Github\Dental_014\data\clean_cropped_ds",
+        default="data/clean_cropped_ds",
         help="Destination path",
     )
     parser.add_argument("--seed", type=int, default=42, help="Random seed")
